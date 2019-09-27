@@ -247,6 +247,13 @@ read_ebp(void)
 	return ebp;
 }
 
+static __attribute__((cdecl)) uint32_t
+read_eip(void)
+{
+	uint32_t *ebp = (uint32_t*)read_ebp();
+	return ebp[1];
+}
+
 static __inline uint32_t
 read_esp(void)
 {
