@@ -120,7 +120,11 @@ void
 env_init(void)
 {
 	// Set up envs array
-	//LAB 3: Your code here.
+	memset(env_array, 0, sizeof(env_array));
+	for (ssize_t i = 0; i < sizeof(env_array) / sizeof(*env_array) - 1; i++) {
+		env_array[i].env_link = env_array + i + 1;
+	}
+	env_free_list = env_array;
 	
 	// Per-CPU part of the initialization
 	env_init_percpu();
