@@ -201,12 +201,37 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	return 0;
 }
 
+int stabstrcmp(const char *f1, const char *f2) {
+	if (!strcmp(f1, f2)) return 0;
+	while (*f1 == *f2 && *f1 && *f2) {
+		++f1;
+		++f2;
+	}
+	if (*f1 == *f2) {
+		return 0;
+	}
+	if ((*f1 == ':' && !*f2) || (*f2 == ':' && !*f1)) {
+		return 0;
+	}
+	return 1;
+}
+
 uintptr_t
 find_function(const char * const fname)
 {
-	// const struct Stab *stabs = __STAB_BEGIN__, *stab_end = __STAB_END__;
-	// const char *stabstr = __STABSTR_BEGIN__, *stabstr_end = __STABSTR_END__;
-	//LAB 3: Your code here.
+	const struct Stab *stabs = __STAB_BEGIN__, *stab_end = __STAB_END__;
+	const char *stabstr = __STABSTR_BEGIN__, *stabstr_end = __STABSTR_END__;
+
+	for (; stabs < stab_end; stabs++) {
+ 		if (stabs->n_type == N_FUN) {
+			if (stabs->n_strx >= stabstr_end - stabstr) {
+				panic("find_function: invalid string offset");
+			}
+			if (stabstrcmp(fname, stabstr + stabs->n_strx) == 0) {
+				return stabs->n_value;
+			}
+		}
+	}
 
 	return 0;
 }
