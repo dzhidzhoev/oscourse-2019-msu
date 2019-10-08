@@ -30,6 +30,7 @@
 
 extern uint16_t irq_mask_8259A;
 void pic_init(void);
+uint16_t irq_readmask_8259A(void);
 void irq_setmask_8259A(uint16_t mask);
 void pic_send_eoi(uint8_t irq);
 #endif // !__ASSEMBLER__

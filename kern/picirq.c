@@ -68,6 +68,12 @@ pic_init(void)
 		irq_setmask_8259A(irq_mask_8259A);
 }
 
+uint16_t
+irq_readmask_8259A(void)
+{
+	return inb(IO_PIC1_DATA) | (inb(IO_PIC2_DATA) << 8);
+}
+
 void
 irq_setmask_8259A(uint16_t mask)
 {
