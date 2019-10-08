@@ -219,7 +219,6 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	return 0;
 }
 
-#define CONFIG_KSPACE 1
 #ifdef CONFIG_KSPACE
 static void
 bind_functions(struct Env *e, struct Elf *elf)
