@@ -26,7 +26,9 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "echo", "Print text", mon_echo},
-	{ "backtrace", "Print current backtrace", mon_backtrace}
+	{ "backtrace", "Print current backtrace", mon_backtrace},
+	{ "timer_start", "Start timer", mon_timer_start},
+	{ "timer_stop", "Stop timer", mon_timer_stop},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -95,7 +97,19 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+int
+mon_timer_start(int argc, char **argv, struct Trapframe *tf) 
+{
+	timer_start();
+	return 0;
+}
 
+int
+mon_timer_stop(int argc, char **argv, struct Trapframe *tf) 
+{
+	timer_stop();
+	return 0;
+}
 
 /***** Kernel monitor command interpreter *****/
 

@@ -190,14 +190,38 @@ void print_timer_error(void)
 	cprintf("Timer Error\n");
 }
 
-//Lab 5: You code here
-//Use print_time function to print timert result.
-//Use print_timer_error function to print error.
+static bool timer_started = false;
+static uint64_t timer_start_time = 0;
+
+static uint64_t counter_read_value() 
+{
+	uint32_t t[2];
+	asm volatile(
+		"rdtsc\n"
+		"mov %%eax, %[tst0]\n"
+		: [tst0] "=rm" (t[0])
+	);
+	asm volatile(
+		"mov %%edx, %[tst1]\n"
+		: [tst1] "=rm" (t[1])
+	);
+	return *(uint64_t*)t;
+}
+
 void timer_start(void)
 {
+	timer_start_time = counter_read_value();
+	timer_started = true;
 }
 
 void timer_stop(void)
 {
+	if (!timer_started) {
+		print_timer_error();
+	} else {
+		print_time((counter_read_value() - timer_start_time) / (cpu_freq * 1000));
+		timer_start_time = 0;
+	}
+	
 }
 

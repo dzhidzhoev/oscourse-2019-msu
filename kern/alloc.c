@@ -11,6 +11,7 @@ static Header base = { .s = { .next = (Header *) space, .prev = (Header *) space
 
 static Header *freep = NULL; /* start of free list */
 
+static struct spinlock heap_lock;
 
 static void check_list(void)
 {
@@ -36,6 +37,7 @@ test_alloc(uint8_t nbytes)
 
 	nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
 
+	spin_lock(&heap_lock);
 	if (freep == NULL) { /* no free list yet */
 		((Header *) &space)->s.next = (Header *) &base;
 		((Header *) &space)->s.prev = (Header *) &base;
@@ -62,6 +64,7 @@ test_alloc(uint8_t nbytes)
 			return NULL;
 		}
 	}
+	spin_unlock(&heap_lock);
 }
 
 /* free: put block ap in free list */
@@ -70,6 +73,8 @@ test_free(void *ap)
 {
 	Header *bp, *p;
 	bp = (Header *) ap - 1; /* point to block header */
+
+	spin_lock(&heap_lock);
 
 	for (p = freep; !(bp > p && bp < p->s.next); p = p->s.next)
 		if (p >= p->s.next && (bp > p || bp < p->s.next))
@@ -95,5 +100,7 @@ test_free(void *ap)
 	freep = p;
 
 	check_list();
+
+	spin_unlock(&heap_lock);
 }
 
