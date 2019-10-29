@@ -14,4 +14,6 @@ union header { /* block header */
 
 typedef union header Header;
 
+void alloc_init(void);
+
 #endif

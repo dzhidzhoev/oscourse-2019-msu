@@ -221,6 +221,7 @@ void timer_stop(void)
 	} else {
 		print_time((counter_read_value() - timer_start_time) / (cpu_freq * 1000));
 		timer_start_time = 0;
+		timer_started = false;
 	}
 	
 }
