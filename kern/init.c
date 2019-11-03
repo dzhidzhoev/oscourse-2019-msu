@@ -59,7 +59,9 @@ i386_init(void)
 	pic_init();
 	rtc_init();
 
+#ifdef CONFIG_KSPACE
 	alloc_init();
+#endif
 
 #ifdef CONFIG_KSPACE
 	// Touch all you want.

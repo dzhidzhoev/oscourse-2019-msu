@@ -35,7 +35,6 @@ sched_yield(void)
 	if (env->env_status == ENV_RUNNABLE || env->env_status == ENV_RUNNING) {
 		env_run(env);
 	}
-	cprintf("NOT CHOSEN\n");
 	
 	// sched_halt never returns
 	sched_halt();
