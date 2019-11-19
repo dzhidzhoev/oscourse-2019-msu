@@ -368,8 +368,23 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	return NULL;
+	pde_t pdx = pgdir[PDX(va)];
+	if (pdx & PTE_P) {
+		return ((pde_t*)KADDR(PTE_ADDR(pdx))) + PTX(va);
+	}
+	if (!create) {
+		return NULL;
+	}
+
+	struct PageInfo *pg = page_alloc(ALLOC_ZERO);
+	if (!pg) {
+		return NULL;
+	}
+	pg->pp_ref = 1;
+	physaddr_t paddr = page2pa(pg);
+	pgdir[PDX(va)] = paddr | PTE_P | PTE_W;
+
+	return (pte_t*)((pde_t*)paddr + PTX(va));
 }
 
 //
@@ -386,7 +401,11 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+	for (int i = 0; i < size; i += PGSIZE) {
+		pde_t *entry = pgdir_walk(pgdir, (void*)va + i, true);
+		*entry = va + i | perm | PTE_P;
+		pgdir[PDX(va + i)] |= perm;
+	}
 }
 
 //
@@ -417,7 +436,18 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
+	pde_t *entry = pgdir_walk(pgdir, va, false);
+	pp->pp_ref++;
+	page_remove(pgdir, va);
+	entry = pgdir_walk(pgdir, va, true);
+	if (!entry) {
+		return -E_NO_MEM;
+	}
+	physaddr_t pa = page2pa(pp);
+	*entry = pa | perm | PTE_P;
+
+	pgdir[PDX(va)] |= perm;
+
 	return 0;
 }
 
@@ -435,7 +465,14 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
+	pde_t *entry = pgdir_walk(pgdir, va, false);
+	if (pte_store) {
+		*pte_store = entry;
+	}
+	if (*entry & PTE_P) {
+		return pa2page(PADDR(va));
+	}
+	
 	return NULL;
 }
 
@@ -457,7 +494,17 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
+	pte_t *entry;
+	struct PageInfo *pi = page_lookup(pgdir, va, &entry);
+	if (entry && (*entry & PTE_P)) {
+		*entry = 0;
+		tlb_invalidate(pgdir, va);
+	}
+	if (pi) {
+		if (pi->pp_ref > 0) {
+			page_decref(pi);
+		}
+	}
 }
 
 //
