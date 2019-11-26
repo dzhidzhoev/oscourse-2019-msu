@@ -1,5 +1,6 @@
 /* See COPYRIGHT for copyright information. */
 
+#include <inc/stdio.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/error.h>
@@ -127,6 +128,7 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 void
 env_init(void)
 {
+#ifdef CONFIG_KSPACE
 	// Set up envs array
 	memset(env_array, 0, sizeof(env_array));
 	for (ssize_t i = 0; i < sizeof(env_array) / sizeof(*env_array) - 1; i++) {
@@ -136,6 +138,7 @@ env_init(void)
 	
 	// Per-CPU part of the initialization
 	env_init_percpu();
+#endif
 }
 
 // Load GDT and segment descriptors.
@@ -194,7 +197,9 @@ env_setup_vm(struct Env *e)
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
 
-	// LAB 8: Your code here.
+	e->env_pgdir = page2kva(p);
+	p->pp_ref++;
+	memcpy(e->env_pgdir, kern_pgdir, PGSIZE);
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -300,6 +305,18 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	void *va_low = ROUNDDOWN(va, PGSIZE);
+	void *va_high = ROUNDDOWN(va + len, PGSIZE);
+
+	for (void *va_cur = va_low; va_cur < va_high; va_cur += PGSIZE) {
+		struct PageInfo *p;
+		if (!(p = page_alloc(0))) {
+			panic("Failed to allocate page");
+		}
+		if (page_insert(e->env_pgdir, p, va_cur, PTE_W | PTE_U)) {
+			panic("page_insert failed");
+		}
+	}
 }
 
 #ifdef CONFIG_KSPACE
@@ -401,6 +418,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			if (ph->p_filesz > ph->p_memsz) {
 				panic("load_icode: bad segment size!");
 			}
+			region_alloc(e, (void*)ph->p_va, ph->p_memsz);
 			memcpy((uint8_t*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 			memset((uint8_t*)ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		}
@@ -412,7 +430,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 #endif
 	// Now map USTACKSIZE for the program's initial stack
 	// at virtual address USTACKTOP - USTACKSIZE.
-	// LAB 8: Your code here.
+	region_alloc(e, (void*) USTACKTOP - USTACKSIZE, USTACKSIZE);
 
 #ifdef SANITIZE_USER_SHADOW_BASE
 	region_alloc(e, (void *) SANITIZE_USER_SHADOW_BASE, SANITIZE_USER_SHADOW_SIZE);
@@ -618,6 +636,7 @@ env_run(struct Env *e)
 		e->env_runs++;
 	}
 
+	lcr3(PADDR(curenv->env_pgdir));
 	env_pop_tf(&curenv->env_tf);
 	// Step 1: If this is a context switch (a new environment is running):
 	//	   1. Set the current environment (if any) back to

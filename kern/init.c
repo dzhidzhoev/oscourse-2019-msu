@@ -53,7 +53,7 @@ i386_init(void)
 
 	// user environment initialization functions
 	env_init();
-	trap_init();
+	//trap_init();
 
 	clock_idt_init();
 
