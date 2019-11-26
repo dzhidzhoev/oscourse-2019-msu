@@ -57,6 +57,11 @@ i386_detect_memory(void)
 	else
 		npages = npages_basemem;
 
+	const size_t MAX_NPAGES = 512 * 1024 * 1024 / PGSIZE;
+	if (npages > MAX_NPAGES) {
+		npages = MAX_NPAGES;
+	}
+
 	cprintf("Physical memory: %uK available, base = %uK, extended = %uK, pextended = %uK\n",
 		npages * PGSIZE / 1024,
 		npages_basemem * PGSIZE / 1024,
@@ -107,10 +112,10 @@ boot_alloc(uint32_t n)
 	}
 	
 	if (n == 0) {
-		return ((uint32_t)nextfree >= KERNBASE + NPTENTRIES * PGSIZE) ? NULL : nextfree;
+		return (PADDR(nextfree) >= npages * PGSIZE) ? NULL : nextfree;
 	}
 	uint32_t sz = ROUNDUP(n, PGSIZE);
-	if ((uint32_t)nextfree + sz >= KERNBASE + NPTENTRIES * PGSIZE) {
+	if (PADDR(nextfree + sz) >= npages * PGSIZE) {
 		panic("no free memory for boot_alloc");
 	}
 	result = nextfree;
