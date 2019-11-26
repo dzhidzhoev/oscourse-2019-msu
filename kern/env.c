@@ -128,17 +128,15 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 void
 env_init(void)
 {
-#ifdef CONFIG_KSPACE
 	// Set up envs array
-	memset(env_array, 0, sizeof(env_array));
-	for (ssize_t i = 0; i < sizeof(env_array) / sizeof(*env_array) - 1; i++) {
-		env_array[i].env_link = env_array + i + 1;
+	memset(envs, 0, sizeof(NENV * sizeof(struct Env)));
+	for (ssize_t i = 0; i < NENV - 1; i++) {
+		envs[i].env_link = envs + i + 1;
 	}
-	env_free_list = env_array;
+	env_free_list = envs;
 	
 	// Per-CPU part of the initialization
 	env_init_percpu();
-#endif
 }
 
 // Load GDT and segment descriptors.
