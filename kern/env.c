@@ -304,7 +304,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 	void *va_low = ROUNDDOWN(va, PGSIZE);
-	void *va_high = ROUNDDOWN(va + len, PGSIZE);
+	void *va_high = ROUNDUP(va + len, PGSIZE);
 
 	for (void *va_cur = va_low; va_cur < va_high; va_cur += PGSIZE) {
 		struct PageInfo *p;
@@ -411,6 +411,8 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	}
 	struct Proghdr *ph = (struct Proghdr*)(binary + elf_hdr->e_phoff);
 	struct Proghdr *end = ph + elf_hdr->e_phnum;
+	lcr3(PADDR(e->env_pgdir));
+
 	for (; ph < end; ph++) {
 		if (ph->p_type == ELF_PROG_LOAD) {
 			if (ph->p_filesz > ph->p_memsz) {
@@ -426,6 +428,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 #ifdef CONFIG_KSPACE
 	bind_functions(e, elf_hdr);
 #endif
+	lcr3(PADDR(kern_pgdir));
 	// Now map USTACKSIZE for the program's initial stack
 	// at virtual address USTACKTOP - USTACKSIZE.
 	region_alloc(e, (void*) USTACKTOP - USTACKSIZE, USTACKSIZE);
