@@ -30,6 +30,7 @@ static struct Command commands[] = {
 	{ "backtrace", "Print current backtrace", mon_backtrace},
 	{ "timer_start", "Start timer", mon_timer_start},
 	{ "timer_stop", "Stop timer", mon_timer_stop},
+	{ "pages", "View memory pages map", mon_view_pages },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -171,4 +172,22 @@ monitor(struct Trapframe *tf)
 			if (runcmd(buf, tf) < 0)
 				break;
 	}
+}
+
+int 
+mon_view_pages(int argc, char **argv, struct Trapframe *tf) 
+{
+	char *map = pages_free_map();
+	size_t beg = 0;
+	for (size_t i = 0; i < pages_count(); i++) {
+		if (map[i] != map[beg]) {
+			cprintf(map[beg] ? "FREE" : "ALLOCATED");
+			cprintf(" %u..%u\n", beg, i - 1);
+			beg = i;
+		}
+	}
+	cprintf(map[beg] ? "FREE" : "ALLOCATED");
+	cprintf(" %u..%u\n", beg, pages_count() - 1);
+
+	return 0;
 }
