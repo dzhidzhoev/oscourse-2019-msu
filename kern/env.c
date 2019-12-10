@@ -306,6 +306,10 @@ region_alloc(struct Env *e, void *va, size_t len)
 	void *va_low = ROUNDDOWN(va, PGSIZE);
 	void *va_high = ROUNDUP(va + len, PGSIZE);
 
+	if (va_low >= (void*)UTOP || va_high > (void*)UTOP) {
+		panic("region_alloc: can't allocate memory");
+	}
+
 	for (void *va_cur = va_low; va_cur < va_high; va_cur += PGSIZE) {
 		struct PageInfo *p;
 		if (!(p = page_alloc(0))) {
@@ -428,11 +432,11 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 #ifdef CONFIG_KSPACE
 	bind_functions(e, elf_hdr);
 #endif
-	lcr3(PADDR(kern_pgdir));
 	// Now map USTACKSIZE for the program's initial stack
 	// at virtual address USTACKTOP - USTACKSIZE.
 	region_alloc(e, (void*) USTACKTOP - USTACKSIZE, USTACKSIZE);
 
+	lcr3(PADDR(kern_pgdir));
 #ifdef SANITIZE_USER_SHADOW_BASE
 	region_alloc(e, (void *) SANITIZE_USER_SHADOW_BASE, SANITIZE_USER_SHADOW_SIZE);
 	// Our stack and pagetables are special, as they use higher addresses, so they gets a separate shadow.

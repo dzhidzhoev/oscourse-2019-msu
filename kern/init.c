@@ -53,7 +53,7 @@ i386_init(void)
 
 	// user environment initialization functions
 	env_init();
-	//trap_init();
+	trap_init();
 
 	clock_idt_init();
 
@@ -78,7 +78,7 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_hello, ENV_TYPE_USER);
+	ENV_CREATE(user_evilhello, ENV_TYPE_USER);
 #endif // TEST*
 #endif
 

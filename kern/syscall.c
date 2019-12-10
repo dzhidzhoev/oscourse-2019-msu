@@ -11,6 +11,9 @@
 #include <kern/syscall.h>
 #include <kern/console.h>
 
+static int sys_env_destroy(envid_t envid);
+static envid_t sys_getenvid(void);
+
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
@@ -20,7 +23,7 @@ sys_cputs(const char *s, size_t len)
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
 
-	// LAB 8: Your code here.
+	user_mem_assert(curenv, s, len, 0);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -68,7 +71,17 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 {
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
-	// LAB 8: Your code here.
+	switch (syscallno) {
+	case SYS_cputs:
+		sys_cputs((const char*)a1, a2);
+		return a2;
+	case SYS_cgetc:
+		return sys_cgetc();
+	case SYS_getenvid:
+		return sys_getenvid();
+	case SYS_env_destroy:
+		return sys_env_destroy(sys_getenvid());
+	}
 
 	panic("syscall not implemented");
 }
