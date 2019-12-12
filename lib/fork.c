@@ -111,11 +111,10 @@ fork(void)
 	set_pgfault_handler(pgfault);
 	envid = sys_exofork();
 	if (envid < 0) {
-		panic("fork: sys_exofork failed");
+		return envid;
 	}
 	if (!envid) {
-		envid = sys_getenvid();
-		thisenv = &envs[envid];
+		thisenv = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 
