@@ -4,14 +4,34 @@
 #include <inc/trap.h>
 #include <kern/kclock.h>
 #include <kern/picirq.h>
+#include <inc/time.h>
+
+int mc146818_readtime() 
+{
+	struct tm time;
+	time.tm_year = BCD2BIN(mc146818_read(RTC_YEAR));
+	time.tm_mon = BCD2BIN(mc146818_read(RTC_MON));
+	time.tm_mday = BCD2BIN(mc146818_read(RTC_DAY));
+	time.tm_hour = BCD2BIN(mc146818_read(RTC_HOUR));
+	time.tm_min = BCD2BIN(mc146818_read(RTC_MIN));
+	time.tm_sec = BCD2BIN(mc146818_read(RTC_SEC));
+	cprintf("current %d %d %d %d %d %d\n", time.tm_year, time.tm_mon, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	return timestamp(&time);
+}
 
 int gettime(void)
 {
 	nmi_disable();
-	// LAB 12: your code here
+	
+	while (mc146818_read(RTC_AREG) & RTC_UPDATE_IN_PROGRESS) ;
+
+	int time;
+	if ((time = mc146818_readtime()) != mc146818_readtime()) {
+		time = mc146818_readtime();
+	}
 
 	nmi_enable();
-	return 0;
+	return time;
 }
 
 void

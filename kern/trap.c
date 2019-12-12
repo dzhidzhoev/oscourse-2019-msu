@@ -13,6 +13,7 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #include <kern/cpu.h>
+#include <inc/vsyscall.h>
 
 #ifndef debug
 # define debug 0
@@ -90,6 +91,7 @@ extern void simderr_thdlr();
 extern void syscall_thdlr();
 extern void kbd_thdlr();
 extern void serial_thdlr();
+extern void clock_thdlr();
 
 void
 trap_init(void)
@@ -116,7 +118,7 @@ trap_init(void)
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, &simderr_thdlr, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &syscall_thdlr, 3);
 	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, &kbd_thdlr, 3);
-	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, &serial_thdlr, 3); 
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, &serial_thdlr, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -148,9 +150,9 @@ trap_init_percpu(void)
 void
 clock_idt_init(void)
 {
-	extern void (*clock_thdlr)(void);
 	// init idt structure
 	SETGATE(idt[IRQ_OFFSET + IRQ_CLOCK], 0, GD_KT, (int)(&clock_thdlr), 0);
+	cprintf("GATE CLOCK SET\n");
 	lidt(&idt_pd);
 }
 
@@ -241,11 +243,17 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle keyboard and serial interrupts.
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
 		kbd_intr();
-		pic_send_eoi(IRQ_CLOCK);
+		pic_send_eoi(IRQ_KBD);
 		return;
 	}
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
 		serial_intr();
+		pic_send_eoi(IRQ_SERIAL);
+		return;
+	}
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_CLOCK) {
+		cprintf("TIME CAME\n");
+		((int*)UVSYS)[VSYS_gettime] = gettime();
 		pic_send_eoi(IRQ_CLOCK);
 		return;
 	}

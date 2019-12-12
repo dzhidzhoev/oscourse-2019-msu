@@ -183,7 +183,9 @@ mem_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'vsys' point to an array of size 'NVSYSCALLS' of int.
-	// LAB 12: Your code here.
+	static_assert(NVSYSCALLS <= UVSYS / 4, "Need to extend shared memory for vsyscall's");
+	vsys = boot_alloc(NVSYSCALLS * sizeof(*vsys));
+	memset(vsys, 0, NVSYSCALLS * sizeof(*vsys));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -215,7 +217,6 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 8: Your code here.
 	boot_map_region(kern_pgdir, UENVS, sizeof(*envs) * NENV, PADDR(envs), PTE_U);
 	boot_map_region(kern_pgdir, (uintptr_t)envs, sizeof(*envs) * NENV, PADDR(envs), PTE_W);
 
@@ -225,7 +226,8 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UVSYS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 12: Your code here.
+	boot_map_region(kern_pgdir, UVSYS, sizeof(*vsys) * NVSYSCALLS, PADDR(vsys), PTE_U);
+	boot_map_region(kern_pgdir, (uintptr_t)vsys, sizeof(*vsys) * NVSYSCALLS, PADDR(vsys), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel

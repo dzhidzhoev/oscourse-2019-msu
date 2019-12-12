@@ -51,6 +51,9 @@
  *                     |          RO PAGES            | R-/R-  PTSIZE
  *    UPAGES    ---->  +------------------------------+ 0xdf000000
  *                     |           RO ENVS            | R-/R-  PTSIZE
+ * 
+ * 						one-page shared memory for vsyscall's
+ * 
  * UTOP,UENVS ------>  +------------------------------+ 0xdec00000
  * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
  *                     +------------------------------+ 0xdebff000
@@ -120,14 +123,14 @@
 #define UENVS		(UPAGES - PTSIZE)
 // Read-only virtual syscall space
 // LAB 12: Your code here.
-#define UVSYS       0
+#define UVSYS       (UENVS - PTSIZE)
 
 /*
  * Top of user VM. User can manipulate VA from UTOP-1 and down!
  */
 
 // Top of user-accessible VM
-#define UTOP		UENVS
+#define UTOP		UVSYS
 // Top of one-page user exception stack
 #define UXSTACKTOP	UTOP
 // Size of exception stack (must be one page for now)
