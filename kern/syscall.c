@@ -340,7 +340,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	e->env_ipc_recving = 0;
 	
 	if ((uintptr_t)srcva < UTOP) {
-		if (PGOFF(srcva) || (perm & ~PTE_SYSCALL) || !(perm & (PTE_U | PTE_P))) {
+		if (PGOFF(srcva) || (perm & ~PTE_SYSCALL) || (PTE_U | PTE_P) != (perm & (PTE_U | PTE_P))) {
 			return -E_INVAL;
 		}
 		struct PageInfo *pp;

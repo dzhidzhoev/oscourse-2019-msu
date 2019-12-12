@@ -145,20 +145,22 @@ fork(void)
 	}
 
 // Duplicating shadow addresses is insane. Make sure to skip shadow addresses in COW above.
-
 #ifdef SANITIZE_USER_SHADOW_BASE
-	for (addr = SANITIZE_USER_SHADOW_BASE; addr < SANITIZE_USER_SHADOW_BASE +
-		SANITIZE_USER_SHADOW_SIZE; addr += PGSIZE)
-		if (sys_page_alloc(p, (void *)addr, PTE_P | PTE_U | PTE_W))
-			panic("Fork: failed to alloc shadow base page");
-	for (addr = SANITIZE_USER_EXTRA_SHADOW_BASE; addr < SANITIZE_USER_EXTRA_SHADOW_BASE +
-		SANITIZE_USER_EXTRA_SHADOW_SIZE; addr += PGSIZE)
-		if (sys_page_alloc(p, (void *)addr, PTE_P | PTE_U | PTE_W))
-			panic("Fork: failed to alloc shadow extra base page");
-	for (addr = SANITIZE_USER_FS_SHADOW_BASE; addr < SANITIZE_USER_FS_SHADOW_BASE +
-		SANITIZE_USER_FS_SHADOW_SIZE; addr += PGSIZE)
-		if (sys_page_alloc(p, (void *)addr, PTE_P | PTE_U | PTE_W))
-			panic("Fork: failed to alloc shadow fs base page");
+	{
+		uint32_t addr;
+		for (addr = SANITIZE_USER_SHADOW_BASE; addr < SANITIZE_USER_SHADOW_BASE +
+			SANITIZE_USER_SHADOW_SIZE; addr += PGSIZE)
+			if (sys_page_alloc(envid, (void *)addr, PTE_P | PTE_U | PTE_W))
+				panic("Fork: failed to alloc shadow base page");
+		for (addr = SANITIZE_USER_EXTRA_SHADOW_BASE; addr < SANITIZE_USER_EXTRA_SHADOW_BASE +
+			SANITIZE_USER_EXTRA_SHADOW_SIZE; addr += PGSIZE)
+			if (sys_page_alloc(envid, (void *)addr, PTE_P | PTE_U | PTE_W))
+				panic("Fork: failed to alloc shadow extra base page");
+		for (addr = SANITIZE_USER_FS_SHADOW_BASE; addr < SANITIZE_USER_FS_SHADOW_BASE +
+			SANITIZE_USER_FS_SHADOW_SIZE; addr += PGSIZE)
+			if (sys_page_alloc(envid, (void *)addr, PTE_P | PTE_U | PTE_W))
+				panic("Fork: failed to alloc shadow fs base page");
+	}
 #endif
 
 	if (sys_env_set_status(envid, ENV_RUNNABLE)) {
