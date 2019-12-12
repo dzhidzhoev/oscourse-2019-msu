@@ -314,7 +314,26 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 static int
 copy_shared_pages(envid_t child)
 {
-	// LAB 11: Your code here.
+	for (uintptr_t addr = 0; addr < USTACKTOP; addr += PGSIZE) {
+#ifdef SANITIZE_USER_SHADOW_BASE
+		if (addr >= SANITIZE_USER_SHADOW_BASE && addr <= SANITIZE_USER_SHADOW_BASE + SANITIZE_USER_SHADOW_SIZE)			 
+			continue;
+
+		if (addr >= SANITIZE_USER_EXTRA_SHADOW_BASE && addr <= SANITIZE_USER_EXTRA_SHADOW_BASE + SANITIZE_USER_EXTRA_SHADOW_SIZE) 
+			continue;
+
+		if (addr >= SANITIZE_USER_FS_SHADOW_BASE && addr <= SANITIZE_USER_FS_SHADOW_BASE + SANITIZE_USER_FS_SHADOW_SIZE) 
+			continue;
+#endif
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P)) {
+			if (uvpt[PGNUM(addr)] & PTE_SHARE) {
+				if (sys_page_map(0,(void*) addr, child, (void*)addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) {
+					panic("fork: failed to map shared page");
+				}
+			}
+		}
+	}
+	
 	return 0;
 }
 

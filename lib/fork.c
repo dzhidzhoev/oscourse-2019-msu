@@ -118,7 +118,6 @@ fork(void)
 		return 0;
 	}
 
-
 	for (uintptr_t addr = 0; addr < USTACKTOP; addr += PGSIZE) {
 #ifdef SANITIZE_USER_SHADOW_BASE
 		if (addr >= SANITIZE_USER_SHADOW_BASE && addr <= SANITIZE_USER_SHADOW_BASE + SANITIZE_USER_SHADOW_SIZE)			 
@@ -131,8 +130,14 @@ fork(void)
 			continue;
 #endif
 		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P)) {
-			if (duppage(envid, PGNUM(addr))) {
-				panic("fork: duppage failed");
+			if (uvpt[PGNUM(addr)] & PTE_SHARE) {
+				if (sys_page_map(0, (void*)addr, envid, (void*)addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) {
+					panic("fork: failed to map shared page");
+				}
+			} else {
+				if (duppage(envid, PGNUM(addr))) {
+					panic("fork: duppage failed");
+				}
 			}
 		}
 	}
