@@ -54,8 +54,15 @@ again:
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
 
-			// LAB 11: Your code here.
-			panic("< redirection not implemented");
+			if ((fd = open(t, O_RDONLY)) < 0) {
+				cprintf("run_cmd: failed to open %s for read\n", t);
+				exit();
+			}
+			if (fd) {
+				dup(fd, 0);
+				close(fd);
+			}
+			
 			break;
 
 		case '>':	// Output redirection

@@ -88,6 +88,8 @@ extern void align_thdlr();
 extern void mchk_thdlr();
 extern void simderr_thdlr();
 extern void syscall_thdlr();
+extern void kbd_thdlr();
+extern void serial_thdlr();
 
 void
 trap_init(void)
@@ -113,6 +115,8 @@ trap_init(void)
 	SETGATE(idt[T_MCHK], 0, GD_KT, &mchk_thdlr, 0);
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, &simderr_thdlr, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &syscall_thdlr, 3);
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, &kbd_thdlr, 3);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, &serial_thdlr, 3); 
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -235,7 +239,16 @@ trap_dispatch(struct Trapframe *tf)
 	}
 
 	// Handle keyboard and serial interrupts.
-	// LAB 11: Your code here.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
+		kbd_intr();
+		pic_send_eoi(IRQ_CLOCK);
+		return;
+	}
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
+		serial_intr();
+		pic_send_eoi(IRQ_CLOCK);
+		return;
+	}
 
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT) {

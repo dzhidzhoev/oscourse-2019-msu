@@ -122,5 +122,6 @@ clock_thdlr:
 	jmp .
 #else
 TRAPHANDLER_NOEC(clock_thdlr, IRQ_OFFSET + IRQ_CLOCK)
-// LAB 8: Your code here.
+TRAPHANDLER_NOEC(kbd_thdlr, IRQ_OFFSET + IRQ_KBD)
+TRAPHANDLER_NOEC(serial_thdlr, IRQ_OFFSET + IRQ_SERIAL)
 #endif
