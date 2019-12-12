@@ -322,7 +322,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		return -E_IPC_NOT_RECV;
 	}
 	e->env_ipc_recving = 0;
-	cprintf("TRY SEND TO %x\n", envid);
+	
 	if ((uintptr_t)srcva < UTOP) {
 		if (PGOFF(srcva) || (perm & ~PTE_SYSCALL) || !(perm & (PTE_U | PTE_P))) {
 			return -E_INVAL;
@@ -366,7 +366,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 static int
 sys_ipc_recv(void *dstva)
 {
-	cprintf("TRY RECV TO %x\n", curenv_getid());
 	if ((uintptr_t)dstva < UTOP && PGOFF(dstva)) {
 		return -E_INVAL;
 	}
