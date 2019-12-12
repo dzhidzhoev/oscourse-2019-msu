@@ -11,6 +11,7 @@
 #include <kern/syscall.h>
 #include <kern/console.h>
 #include <kern/sched.h>
+#include <kern/kclock.h>
 
 static int sys_env_destroy(envid_t envid);
 static envid_t sys_getenvid(void);
@@ -402,6 +403,16 @@ sys_ipc_recv(void *dstva)
 	curenv->env_status = ENV_NOT_RUNNABLE;
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_ipc_recving = 1;
+	return 0;
+}
+
+// Return date and time in UNIX timestamp format: seconds passed
+// from 1970-01-01 00:00:00 UTC.
+static int
+sys_gettime(void)
+{
+	// LAB 12: Your code here.
+	panic("sys_gettime not implemented");
 	return 0;
 }
 

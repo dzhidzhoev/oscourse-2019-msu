@@ -5,6 +5,15 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 
+int gettime(void)
+{
+	nmi_disable();
+	// LAB 12: your code here
+
+	nmi_enable();
+	return 0;
+}
+
 void
 rtc_init(void)
 {
