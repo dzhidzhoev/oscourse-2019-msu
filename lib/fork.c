@@ -7,6 +7,8 @@
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
 
+extern void _pgfault_upcall();
+
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
@@ -16,6 +18,8 @@ pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;addr=addr;
 	uint32_t err = utf->utf_err;err=err;
+	envid_t envid = sys_getenvid();
+	int r;
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -23,7 +27,12 @@ pgfault(struct UTrapframe *utf)
 	//   Use the read-only page table mappings at uvpt
 	//   (see <inc/memlayout.h>).
 
-	// LAB 9: Your code here.
+	if (!(utf->utf_err & FEC_WR)) {
+		panic("pgfault: not write %p", addr);
+	}
+	if (!(uvpt[PGNUM(addr)] & PTE_COW)) {
+		panic("pgfault: not cow %p", addr);
+	}
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -33,9 +42,18 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 	//   Make sure you DO NOT use sanitized memcpy/memset routines when using UASAN.
 
-	// LAB 9: Your code here.
-
-	panic("pgfault not implemented");
+	if ((r = sys_page_alloc(envid, PFTEMP, PTE_U | PTE_P | PTE_W))) {
+		panic("pgfault: failed to allocate temporary memory %i", r);
+	}
+#ifdef SANITIZE_USER_SHADOW_BASE
+	__nosan_memcpy(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+#else
+	memcpy(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+#endif
+	if ((r = sys_page_map(envid, PFTEMP, envid, ROUNDDOWN(addr, PGSIZE), PTE_U | PTE_P | PTE_W))) {
+		panic("pgfault: failed to map %i", r);
+	}
+	sys_page_unmap(envid, PFTEMP);
 }
 
 //
@@ -52,8 +70,21 @@ pgfault(struct UTrapframe *utf)
 static int
 duppage(envid_t envid, unsigned pn)
 {
-	// LAB 9: Your code here.
-	panic("duppage not implemented");
+	int r;
+	void *addr = (void*)(pn * PGSIZE);
+	if ((uvpt[pn] & PTE_COW) || (uvpt[pn] & PTE_W)) {
+		envid_t penvid = sys_getenvid();
+		if ((r = sys_page_map(penvid, addr, envid, addr, PTE_P | PTE_U | PTE_COW))) {
+			panic("duppage: failed to map page to child process with cow %i", r);
+		}
+		if ((r = sys_page_map(penvid, addr, penvid, addr, PTE_P | PTE_U | PTE_COW))) {
+			panic("duppage: failed to mark own page as COW %i", r);
+		}
+	} else 
+		if ((r = sys_page_map(sys_getenvid(), addr, envid, addr, PTE_P | PTE_U))) {
+			panic("duppage: failed to map r/o page %i", r);
+		}
+	}
 	return 0;
 }
 
@@ -76,9 +107,43 @@ duppage(envid_t envid, unsigned pn)
 envid_t
 fork(void)
 {
-	// LAB 9: Your code here.
+	envid_t envid = sys_getenvid();
+	set_pgfault_handler(pgfault);
+	envid = sys_exofork();
+	if (envid < 0) {
+		panic("fork: sys_exofork failed");
+	}
+	if (!envid) {
+		envid = sys_getenvid();
+		thisenv = &envs[envid];
+		return 0;
+	}
 
-/*
+
+	for (uintptr_t addr = 0; addr < USTACKTOP; addr += PGSIZE) {
+#ifdef SANITIZE_USER_SHADOW_BASE
+		if (addr >= SANITIZE_USER_SHADOW_BASE && addr <= SANITIZE_USER_SHADOW_BASE + SANITIZE_USER_SHADOW_SIZE)			 
+			continue;
+
+		if (addr >= SANITIZE_USER_EXTRA_SHADOW_BASE && addr <= SANITIZE_USER_EXTRA_SHADOW_BASE + SANITIZE_USER_EXTRA_SHADOW_SIZE) 
+			continue;
+
+		if (addr >= SANITIZE_USER_FS_SHADOW_BASE && addr <= SANITIZE_USER_FS_SHADOW_BASE + SANITIZE_USER_FS_SHADOW_SIZE) 
+			continue;
+#endif
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P)) {
+			if (duppage(envid, PGNUM(addr))) {
+				panic("fork: duppage failed");
+			}
+		}
+	}
+
+	if (sys_page_alloc(envid, (void*)UXSTACKTOP - UXSTACKSIZE, PTE_P | PTE_U | PTE_W)) {
+		panic("fork: failed to allocate exception stack");
+	}
+	if (sys_env_set_pgfault_upcall(envid, _pgfault_upcall)) {
+		panic("fork: sys_env_set_pgfault_upcall failed for child");
+	}
 
 // Duplicating shadow addresses is insane. Make sure to skip shadow addresses in COW above.
 
@@ -97,9 +162,11 @@ fork(void)
 			panic("Fork: failed to alloc shadow fs base page");
 #endif
 
-*/
+	if (sys_env_set_status(envid, ENV_RUNNABLE)) {
+		panic("fork: can't make child runnable");
+	}
 
-	panic("fork not implemented");
+	return envid;
 }
 
 // Challenge!
