@@ -80,7 +80,7 @@ duppage(envid_t envid, unsigned pn)
 		if ((r = sys_page_map(penvid, addr, penvid, addr, PTE_P | PTE_U | PTE_COW))) {
 			panic("duppage: failed to mark own page as COW %i", r);
 		}
-	} else 
+	} else {
 		if ((r = sys_page_map(sys_getenvid(), addr, envid, addr, PTE_P | PTE_U))) {
 			panic("duppage: failed to map r/o page %i", r);
 		}
