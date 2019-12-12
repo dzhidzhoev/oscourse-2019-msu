@@ -553,8 +553,7 @@ env_destroy(struct Env *e)
 	}
 
 	cprintf("Destroyed the only environment - nothing more to do!\n");
-	while (1)
-		monitor(NULL);
+	sched_yield();
 }
 
 #ifdef CONFIG_KSPACE
