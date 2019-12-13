@@ -15,7 +15,6 @@ int mc146818_readtime()
 	time.tm_hour = BCD2BIN(mc146818_read(RTC_HOUR));
 	time.tm_min = BCD2BIN(mc146818_read(RTC_MIN));
 	time.tm_sec = BCD2BIN(mc146818_read(RTC_SEC));
-	cprintf("current %d %d %d %d %d %d\n", time.tm_year, time.tm_mon, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 	return timestamp(&time);
 }
 
