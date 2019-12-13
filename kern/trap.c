@@ -235,8 +235,8 @@ trap_dispatch(struct Trapframe *tf)
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_CLOCK) {
 		// cprintf("status %x\n", rtc_check_status());
 		rtc_check_status();
-		pic_send_eoi(IRQ_CLOCK);
 		vsys[VSYS_gettime] = gettime();
+		pic_send_eoi(IRQ_CLOCK);
 		sched_yield();
 		return;
 	}

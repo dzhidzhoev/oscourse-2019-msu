@@ -3,6 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/vsyscall.h>
 
 #include <kern/monitor.h>
 #include <kern/tsc.h>
@@ -15,6 +16,7 @@
 #include <kern/picirq.h>
 #include <kern/kclock.h>
 #include <kern/alloc.h>
+#include <kern/vsyscall.h>
 
 void
 i386_init(void)
@@ -59,6 +61,8 @@ i386_init(void)
 
 	pic_init();
 	rtc_init();
+	
+	vsys[VSYS_gettime] = gettime();
 
 #ifdef CONFIG_KSPACE
 	alloc_init();
