@@ -119,16 +119,21 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	// filling fsipcbuf.read with the request arguments.  The
 	// bytes read will be written back to fsipcbuf by the file
 	// system server.
-	int r;
-	
-	fsipcbuf.read.req_fileid = fd->fd_file.id;
-	fsipcbuf.read.req_n = n;
-	if ((r = fsipc(FSREQ_READ, NULL)) < 0)
-		return r;
-	assert(r <= n);
-	assert(r <= PGSIZE);
-	memmove(buf, fsipcbuf.readRet.ret_buf, r);
-	return r;
+	int r = 0;
+	size_t n2 = n;
+
+	while (n > 0) {
+		fsipcbuf.read.req_fileid = fd->fd_file.id;
+		fsipcbuf.read.req_n = MIN(n, PGSIZE);
+		if ((r = fsipc(FSREQ_READ, NULL)) <= 0)
+			return r;
+		assert(r <= n);
+		assert(r <= PGSIZE);
+		memmove(buf, fsipcbuf.readRet.ret_buf, r);
+		buf += r;
+		n -= r;
+	}
+	return n2;
 }
 
 
@@ -145,16 +150,22 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
 	
-	fsipcbuf.write.req_n = n;
-	fsipcbuf.write.req_fileid = fd->fd_file.id;
-	assert(n <= PGSIZE - (sizeof(int) + sizeof(size_t)));
-	memmove(fsipcbuf.write.req_buf, buf, n);
 	int r;
-	if ((r = fsipc(FSREQ_WRITE, NULL)) < 0) {
-		return r;
+	size_t n2 = n;
+
+	while (n > 0) {
+		fsipcbuf.write.req_n = MIN(n, sizeof(fsipcbuf.write.req_buf));
+		fsipcbuf.write.req_fileid = fd->fd_file.id;
+		
+		memmove(fsipcbuf.write.req_buf, buf, fsipcbuf.write.req_n);
+		if ((r = fsipc(FSREQ_WRITE, NULL)) <= 0) {
+			return r;
+		}
+		assert(r <= n);
+		n -= r;
+		buf += r;
 	}
-	assert(r <= n);
-	return r;
+	return n2;
 }
 
 static int
