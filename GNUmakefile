@@ -228,6 +228,9 @@ LDFLAGS := -m elf_i386
 
 # Linker flags for JOS user programs
 ULDFLAGS := -T user/user.ld
+ifeq ($(ENABLE_ASLR),y)
+ULDFLAGS += -pie
+endif
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -249,6 +252,10 @@ all: .git/hooks/post-checkout .git/hooks/pre-commit
 
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL
 USER_CFLAGS := $(CFLAGS)
+ifeq ($(ENABLE_ASLR),y)
+USER_CFLAGS += -fpie 
+USER_CFLAGS += -DENABLE_ASLR 
+endif
 ifeq ($(CONFIG_KSPACE),y)
 KERN_CFLAGS += -DCONFIG_KSPACE
 USER_CFLAGS += -DCONFIG_KSPACE -DJOS_PROG

@@ -17,6 +17,25 @@
 #include <kern/kclock.h>
 #include <kern/alloc.h>
 #include <kern/vsyscall.h>
+#include <kern/lfsr113.h>
+
+static void
+test_rand(void)
+{
+#define MOD 25
+#define CNT 100
+	unsigned buf[MOD] = {};
+	for (int i = 0; i < MOD * CNT; i++) {
+		buf[lfsr113() % MOD]++;
+	}
+	unsigned min = buf[0], max = buf[0];
+	for (int i = 0; i < MOD; i++) {
+		min = MIN(min, buf[i]);
+		max = MAX(max, buf[i]);
+		cprintf("buf[%d] = %d\n", i, buf[i]);
+	}
+	assert(max - min < CNT);
+}
 
 void
 i386_init(void)
@@ -52,6 +71,9 @@ i386_init(void)
 	// Lab 6 memory management initialization functions
 	mem_init();
 #endif
+
+	// Test random numbers generator
+	test_rand();
 
 	// user environment initialization functions
 	env_init();

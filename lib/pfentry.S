@@ -30,12 +30,16 @@
 // code, pointed to by the global variable '_pgfault_handler'.
 
 .text
-.globl _pgfault_upcall
+.globl _pgfault_upcall, call_pgfault_handler
 _pgfault_upcall:
 	// Call the C page fault handler.
 	pushl %esp			// function argument: pointer to UTF
+#ifdef ENABLE_ASLR
+	call call_pgfault_handler
+#else
 	movl _pgfault_handler, %eax
 	call *%eax
+#endif
 	addl $4, %esp			// pop function argument
 	
 	// Now the C page fault handler has returned and you must return

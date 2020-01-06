@@ -352,6 +352,9 @@ umain(int argc, char **argv)
 
 	serve_init();
 	fs_init();
+#ifdef SANITIZE_USER_SHADOW_BASE
+	platform_asan_unpoison((void*)DISKMAP, DISKSIZE);
+#endif
         fs_test();
 	serve();
 }

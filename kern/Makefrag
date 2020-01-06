@@ -32,7 +32,8 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/readline.c \
 			lib/string.c \
 			kern/tsc.c \
-			kern/spinlock.c
+			kern/spinlock.c \
+			kern/lfsr113.c
 
 ifeq ($(CONFIG_KSPACE),y)
 KERN_SRCFILES += kern/alloc.c
@@ -88,7 +89,6 @@ KERN_BINFILES :=	user/hello \
 			user/dumbfork \
 			user/stresssched \
 			user/faultdie \
-			user/faultregs \
 			user/faultalloc \
 			user/faultallocbad \
 			user/faultnostack \
@@ -117,7 +117,8 @@ KERN_BINFILES :=	user/hello \
 			user/vdate \
 			user/bounds \
 			user/implicitconv \
-			user/signedoverflow
+			user/signedoverflow \
+#			user/faultregs
 KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 endif
 
