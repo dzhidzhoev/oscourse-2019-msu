@@ -126,3 +126,9 @@ int sys_gettime(void)
 {
 	return syscall(SYS_gettime, 0, 0, 0, 0, 0, 0);
 }
+
+unsigned int
+sys_rand(void)
+{
+	return syscall(SYS_rand, 0, 0, 0, 0, 0, 0);
+}

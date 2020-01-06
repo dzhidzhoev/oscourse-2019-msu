@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/kclock.h>
+#include <kern/lfsr113.h>
 
 static int sys_env_destroy(envid_t envid);
 static envid_t sys_getenvid(void);
@@ -455,6 +456,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_trapframe(a1, (void*)a2);
 	case SYS_gettime:
 		return sys_gettime();
+	case SYS_rand:
+		return lfsr113();
 	}
 
 	panic("syscall not implemented");
