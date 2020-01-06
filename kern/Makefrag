@@ -86,7 +86,6 @@ KERN_BINFILES :=	user/hello \
 			user/faultwritekernel \
 			user/idle \
 			user/yield \
-			user/dumbfork \
 			user/stresssched \
 			user/faultdie \
 			user/faultalloc \
@@ -118,7 +117,8 @@ KERN_BINFILES :=	user/hello \
 			user/bounds \
 			user/implicitconv \
 			user/signedoverflow \
-#			user/faultregs
+#			user/faultregs \
+			user/dumbfork
 KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 endif
 
