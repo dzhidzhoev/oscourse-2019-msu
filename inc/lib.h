@@ -37,10 +37,10 @@ void	umain(int argc, char **argv);
 
 // libmain.c or entry.S
 extern const char *binaryname;
-extern const volatile int vsys[];
+extern const volatile int *vsys;
 extern const volatile struct Env *thisenv;
-extern const volatile struct Env envs[NENV];
-extern const volatile struct PageInfo pages[];
+extern const volatile struct Env *envs;
+extern const volatile struct PageInfo *pages;
 
 // exit.c
 void	exit(void);
@@ -69,6 +69,7 @@ int	sys_page_unmap(envid_t env, void *pg);
 int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 int	sys_gettime(void);
+unsigned	sys_rand(void);
 
 int	vsys_gettime(void);
 
@@ -148,5 +149,8 @@ void	wait(envid_t env);
 extern void (* volatile sys_exit)(void);
 extern void (* volatile sys_yield)(void);
 #endif
+
+// Bottom of file descriptor area
+#define FDTABLE		0xD0000000
 
 #endif	// !JOS_INC_LIB_H

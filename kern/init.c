@@ -32,7 +32,7 @@ test_rand(void)
 	for (int i = 0; i < MOD; i++) {
 		min = MIN(min, buf[i]);
 		max = MAX(max, buf[i]);
-		cprintf("buf[%d] = %d\n", i, buf[i]);
+		// cprintf("buf[%d] = %d\n", i, buf[i]);
 	}
 	assert(max - min < CNT);
 }

@@ -253,7 +253,7 @@ all: .git/hooks/post-checkout .git/hooks/pre-commit
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL
 USER_CFLAGS := $(CFLAGS)
 ifeq ($(ENABLE_ASLR),y)
-USER_CFLAGS += -fpie 
+USER_CFLAGS += -fpie -fpic 
 USER_CFLAGS += -DENABLE_ASLR 
 endif
 ifeq ($(CONFIG_KSPACE),y)

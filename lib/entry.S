@@ -5,15 +5,15 @@
 // Define the global symbols 'envs', 'pages', 'vsys', 'uvpt', and 'uvpd'
 // so that they can be used in C as if they were ordinary global arrays.
 	.globl envs
-	.set envs, UENVS
+envs:	.long UENVS
 	.globl pages
-	.set pages, UPAGES
+pages:	.long UPAGES
 	.globl vsys
-	.set vsys, UVSYS
+vsys:	.long UVSYS
 	.globl uvpt
-	.set uvpt, UVPT
+uvpt:	.long UVPT
 	.globl uvpd
-	.set uvpd, (UVPT+(UVPT>>12)*4)
+uvpd:	.long (UVPT+(UVPT>>12)*4)
 
 
 // Entrypoint - this is where the kernel (or our parent environment)

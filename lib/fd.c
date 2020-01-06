@@ -8,8 +8,6 @@
 
 // Maximum number of file descriptors a program may hold open concurrently
 #define MAXFD		32
-// Bottom of file descriptor area
-#define FDTABLE		0xD0000000
 // Bottom of file data area.  We reserve one data page for each FD,
 // which devices can use if they choose.
 #define FILEDATA	(FDTABLE + MAXFD*PGSIZE)
@@ -142,11 +140,13 @@ int
 dev_lookup(int dev_id, struct Dev **dev)
 {
 	int i;
-	for (i = 0; devtab[i]; i++)
+	for (i = 0; devtab[i]; i++) {
+		// cprintf("DEVTAB %d %d\n", i, 0);//devtab[i]->dev_id);
 		if (devtab[i]->dev_id == dev_id) {
 			*dev = devtab[i];
 			return 0;
 		}
+	}
 	cprintf("[%08x] unknown device type %d\n", thisenv->env_id, dev_id);
 	*dev = 0;
 	return -E_INVAL;

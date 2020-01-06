@@ -54,6 +54,11 @@ struct Elf32_Sym {
     uint16_t		st_shndx;
 };
 
+struct Elf32_Rel {
+    uint32_t      r_offset;
+    uint32_t      r_info;
+};
+
 #define STB_LOCAL  0
 #define STB_GLOBAL 1
 #define STB_WEAK   2
@@ -93,6 +98,7 @@ struct Elf32_Sym {
 #define ELF_SHT_PROGBITS	1
 #define ELF_SHT_SYMTAB		2
 #define ELF_SHT_STRTAB		3
+#define ELF_SHT_REL			9
 
 // Values for Secthdr::sh_name
 #define ELF_SHN_UNDEF		0

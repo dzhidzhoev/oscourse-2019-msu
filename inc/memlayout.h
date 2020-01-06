@@ -185,8 +185,8 @@ typedef uint32_t pde_t;
  * will always be available at virtual address (UVPT + (UVPT >> PGSHIFT)), to
  * which uvpd is set in entry.S.
  */
-extern volatile pte_t uvpt[];     // VA of "virtual page table"
-extern volatile pde_t uvpd[];     // VA of current page directory
+extern volatile pte_t *uvpt;     // VA of "virtual page table"
+extern volatile pde_t *uvpd;     // VA of current page directory
 #endif
 
 /*

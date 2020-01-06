@@ -6,7 +6,7 @@
 // Helper functions for spawn.
 static int init_stack(envid_t child, const char **argv, uintptr_t *init_esp);
 static int map_segment(envid_t child, uintptr_t va, size_t memsz,
-		       int fd, size_t filesz, off_t fileoffset, int perm);
+	int fd, size_t filesz, off_t fileoffset, int perm, struct Elf *elf, int va_used_offset);
 static int copy_shared_pages(envid_t child);
 
 // Spawn a child process from a program image loaded from the file system.
@@ -103,21 +103,50 @@ spawn(const char *prog, const char **argv)
 
 	// Set up trap frame, including initial stack.
 	child_tf = envs[ENVX(child)].env_tf;
-	child_tf.tf_eip = elf->e_entry;
 
 	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0)
 		return r;
 
 	// Set up program segments as defined in ELF header.
 	ph = (struct Proghdr*) (elf_buf + elf->e_phoff);
-	for (i = 0; i < elf->e_phnum; i++, ph++) {
-		if (ph->p_type != ELF_PROG_LOAD)
+
+	int32_t offset = 0;
+#ifdef ENABLE_ASLR
+	{
+		uint32_t min = FDTABLE;
+		uint32_t max = 0;
+		struct Proghdr *cur = ph;
+		for (i = 0; i < elf->e_phnum; i++, cur++) {
+			if (cur->p_type != ELF_PROG_LOAD) 
+				continue;
+			max = MAX(max, cur->p_va + cur->p_memsz);
+			min = MIN(min, cur->p_va);
+		}
+		cprintf("ASLR min %x max %x\n", min, max);
+		if (min < max && max - min < FDTABLE - UTEXT) {
+			uint32_t mod = ROUNDDOWN(FDTABLE - UTEXT - (max - min), PGSIZE) / PGSIZE;
+			cprintf("ASLR mod %x\n", mod);
+			offset = sys_rand() % mod * PGSIZE;
+			cprintf("ASLR page num %x utext + num %x\n", offset / PGSIZE, UTEXT + offset);
+			offset = min - (UTEXT + offset);
+			cprintf("ASLR offset %d\n", offset);
+		}
+		cprintf("Child base (maybe) 0x%x\n", min - offset);
+	}
+#endif
+
+	child_tf.tf_eip = elf->e_entry - offset;
+	cprintf("Child entry point 0x%x\n", child_tf.tf_eip);
+
+	struct Proghdr *cur = ph;
+	for (i = 0; i < elf->e_phnum; i++, cur++) {
+		if (cur->p_type != ELF_PROG_LOAD)
 			continue;
 		perm = PTE_P | PTE_U;
-		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
+		if (cur->p_flags & ELF_PROG_FLAG_WRITE)
 			perm |= PTE_W;
-		if ((r = map_segment(child, ph->p_va, ph->p_memsz,
-				     fd, ph->p_filesz, ph->p_offset, perm)) < 0)
+		if ((r = map_segment(child, cur->p_va - offset, cur->p_memsz,
+				     fd, cur->p_filesz, cur->p_offset, perm, elf, offset)) < 0)
 			goto error;
 	}
 
@@ -276,7 +305,7 @@ error:
 
 static int
 map_segment(envid_t child, uintptr_t va, size_t memsz,
-	int fd, size_t filesz, off_t fileoffset, int perm)
+	int fd, size_t filesz, off_t fileoffset, int perm, struct Elf *elf, int va_used_offset)
 {
 	int i, r;
 
@@ -302,6 +331,41 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 				return r;
 			if ((r = readn(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
 				return r;
+	
+#ifdef ENABLE_ASLR
+			{
+				// Has to fix all relocations
+				// cprintf("START FIX RELOC\n");
+				for (int j = 0; j < elf->e_shnum; j++) {
+					struct Secthdr sect;
+					seek(fd, (off_t)((struct Secthdr*)elf->e_shoff + j));
+					if (readn(fd, &sect, sizeof(sect)) != sizeof(sect)) {
+						cprintf("elf failed to read section header entry %d!\n", j);
+						sys_page_unmap(0, UTEMP);
+						return r;
+					}
+					if (ELF_SHT_REL == sect.sh_type) {
+						// cprintf("REL SECTION FOUND [%x,%x)\n", va + i + va_used_offset, va + i + va_used_offset + PGSIZE);
+						for (int j = 0; j < sect.sh_size / sizeof(struct Elf32_Rel); j++) {
+							struct Elf32_Rel rel;
+							seek(fd, sect.sh_offset + j * sizeof(struct Elf32_Rel));
+							if (readn(fd, &rel, sizeof(rel)) != sizeof(rel)) {
+								cprintf("elf failed to read relocation %d!\n", j);
+								sys_page_unmap(0, UTEMP);
+								return r;
+							}
+							// cprintf("RELOC WITH OFFSET %x\n", rel.r_offset);
+							if (rel.r_offset - va_used_offset >= va + i && rel.r_offset - va_used_offset < va + i + PGSIZE) {
+								// cprintf("BEFORE %p\n", (uint32_t*)(rel.r_offset - va_used_offset - (va + i) + UTEMP));
+								*(uint32_t*)(rel.r_offset - va_used_offset - (va + i) + UTEMP) -= va_used_offset;
+								// cprintf("AFTER %x\n", *(uint32_t*)(rel.r_offset - va_used_offset - (va + i) + UTEMP));
+							}
+						}
+					}
+				}
+			}
+#endif
+
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %i", r);
 			sys_page_unmap(0, UTEMP);
