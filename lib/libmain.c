@@ -12,6 +12,18 @@ const char *binaryname = "<unknown>";
 void (* volatile sys_exit)(void);
 #endif
 
+__attribute__((noreturn))
+void __stack_chk_fail(void)
+{
+	panic("stack integrity check failed: expected %x", *(uint32_t*)UCANARY_VAL);
+}
+
+void __attribute__ ((noreturn))
+__stack_chk_fail_local (void)
+{
+	__stack_chk_fail();
+}
+
 void
 libmain(int argc, char **argv)
 {

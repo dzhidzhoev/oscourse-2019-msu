@@ -305,6 +305,19 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
 			goto error;
 	}
 
+	// Modify stack canary
+	if ((r = sys_page_alloc(0, (void*)UTEMP, PTE_P|PTE_U|PTE_W)) < 0) {
+		return r;
+	}
+	*(uint32_t*)(UCANARY_VAL - UCANARY + UTEMP) = sys_rand();
+	if ((r = sys_page_map(0, UTEMP, child, (void*)UCANARY, PTE_P|PTE_U)) < 0) {
+		sys_page_unmap(0, UTEMP);
+		return r;
+	}
+	if ((r = sys_page_unmap(0, UTEMP)) < 0) {
+		return r;
+	}
+
 	return 0;
 
 error:

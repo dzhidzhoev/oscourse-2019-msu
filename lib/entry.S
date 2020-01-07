@@ -14,7 +14,8 @@ vsys:	.long UVSYS
 uvpt:	.long UVPT
 	.globl uvpd
 uvpd:	.long (UVPT+(UVPT>>12)*4)
-
+__stack_chk_guard: .long 0xdeadbeef
+	.globl __stack_chk_guard
 
 // Entrypoint - this is where the kernel (or our parent environment)
 // starts us running when we are initially loaded into a new environment.

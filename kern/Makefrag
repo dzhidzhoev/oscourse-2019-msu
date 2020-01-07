@@ -114,6 +114,7 @@ KERN_BINFILES :=	user/hello \
 			user/testshell \
 			user/testentry \
 			user/testaslr \
+			user/testcanary \
 			user/date \
 			user/vdate \
 			user/bounds \

@@ -256,6 +256,9 @@ ifeq ($(ENABLE_ASLR),y)
 USER_CFLAGS += -fpie -fpic 
 USER_CFLAGS += -DENABLE_ASLR 
 endif
+ifeq ($(ENABLE_STACK_PROTECTOR),y)
+USER_CFLAGS += -fstack-protector-all 
+endif
 ifeq ($(CONFIG_KSPACE),y)
 KERN_CFLAGS += -DCONFIG_KSPACE
 USER_CFLAGS += -DCONFIG_KSPACE -DJOS_PROG

@@ -16,6 +16,7 @@
 #include <kern/sched.h>
 #include <kern/cpu.h>
 #include <kern/kdebug.h>
+#include <kern/lfsr113.h>
 
 #ifdef CONFIG_KSPACE
 struct Env env_array[NENV];
@@ -47,7 +48,7 @@ static struct Env *env_free_list;	// Free environment list
 // definition of gdt specifies the Descriptor Privilege Level (DPL)
 // of that descriptor: 0 for kernel and 3 for user.
 //
-struct Segdesc gdt[NCPU + 5] =
+struct Segdesc gdt[NCPU + 6] =
 {
 	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
@@ -64,9 +65,12 @@ struct Segdesc gdt[NCPU + 5] =
 	// 0x20 - user data segment
 	[GD_UD >> 3] = SEG(STA_W, 0x0, 0xffffffff, 3),
 
+	// for stack canary
+	[GD_GS >> 3] = SEG(STA_R, UCANARY, 0xffffffff, 3),
+
 	// Per-CPU TSS descriptors (starting from GD_TSS0) are initialized
 	// in trap_init_percpu()
-	[GD_TSS0 >> 3] = SEG_NULL
+	[GD_TSS0 >> 3] = SEG_NULL,
 };
 
 struct Pseudodesc gdt_pd = {
@@ -144,9 +148,9 @@ void
 env_init_percpu(void)
 {
 	lgdt(&gdt_pd);
-	// The kernel never uses GS or FS, so we leave those set to
-	// the user data segment.
-	asm volatile("movw %%ax,%%gs" :: "a" (GD_UD|3));
+
+	asm volatile("movw %%ax,%%gs" :: "a" (GD_GS|3));
+	
 	asm volatile("movw %%ax,%%fs" :: "a" (GD_UD|3));
 	// The kernel does use ES, DS, and SS.  We'll change between
 	// the kernel and user data segments as needed.
@@ -441,6 +445,9 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	// Now map USTACKSIZE for the program's initial stack
 	// at virtual address USTACKTOP - USTACKSIZE.
 	region_alloc(e, (void*) USTACKTOP - USTACKSIZE, USTACKSIZE);
+	// Memory for stack canary
+	region_alloc(e, (void*) UCANARY, PGSIZE);
+	*(uint32_t*)UCANARY_VAL = lfsr113();
 
 	lcr3(PADDR(kern_pgdir));
 #ifdef SANITIZE_USER_SHADOW_BASE

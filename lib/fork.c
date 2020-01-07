@@ -142,6 +142,7 @@ fork(void)
 		}
 	}
 
+	duppage(envid, PGNUM(UCANARY));
 	if (sys_page_alloc(envid, (void*)UXSTACKTOP - UXSTACKSIZE, PTE_P | PTE_U | PTE_W)) {
 		panic("fork: failed to allocate exception stack");
 	}

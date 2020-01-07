@@ -17,6 +17,7 @@
 #define GD_UT     0x18     // user text
 #define GD_UD     0x20     // user data
 #define GD_TSS0   0x28     // Task segment selector for CPU 0
+#define GD_GS     0x30     // for stack canary
 
 /*
  * Virtual memory map:                                Permissions
@@ -58,6 +59,10 @@
  * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
  *                     +------------------------------+ 0xdebff000
  *                     |       Empty Memory (*)       | --/--  PGSIZE
+ *
+ * 
+ * 						one-page memory for stack canary
+ * 
  *    USTACKTOP  --->  +------------------------------+ 0xdebfe000
  *                     |      Normal User Stack       | RW/RW  PGSIZE
  *                     +------------------------------+ 0xdebfd000
@@ -135,9 +140,12 @@
 #define UXSTACKTOP	UTOP
 // Size of exception stack (must be one page for now)
 #define UXSTACKSIZE PGSIZE
+// Stack canary page
+#define UCANARY		(UXSTACKTOP - UXSTACKSIZE - PGSIZE)
+#define UCANARY_VAL (UCANARY + 0x14)
 // Top of normal user stack
 // Next page left invalid to guard against exception stack overflow; then:
-#define USTACKTOP	(UTOP - USTACKSIZE - UXSTACKSIZE - PGSIZE)
+#define USTACKTOP	(UCANARY - PGSIZE)
 // Stack size (variable)
 #define USTACKSIZE  (2*PGSIZE)
 // Max number of open files in the file system at once

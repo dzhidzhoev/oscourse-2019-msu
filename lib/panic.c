@@ -18,6 +18,8 @@ _panic(const char *file, int line, const char *fmt, ...)
 		sys_getenvid(), binaryname, file, line);
 	vcprintf(fmt, ap);
 	cprintf("\n");
+	sys_yield();
+	exit();
 
 	// Cause a breakpoint exception
 	while (1)
