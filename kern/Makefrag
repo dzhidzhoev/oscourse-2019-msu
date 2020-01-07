@@ -112,6 +112,8 @@ KERN_BINFILES :=	user/hello \
 			user/spawnhello \
 			user/testpteshare \
 			user/testshell \
+			user/testentry \
+			user/testaslr \
 			user/date \
 			user/vdate \
 			user/bounds \

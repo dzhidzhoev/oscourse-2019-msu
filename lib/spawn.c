@@ -9,6 +9,8 @@ static int map_segment(envid_t child, uintptr_t va, size_t memsz,
 	int fd, size_t filesz, off_t fileoffset, int perm, struct Elf *elf, int va_used_offset);
 static int copy_shared_pages(envid_t child);
 
+#define ASLR_DEBUG 0
+
 // Spawn a child process from a program image loaded from the file system.
 // prog: the pathname of the program to run.
 // argv: pointer to null-terminated array of pointers to strings,
@@ -122,21 +124,29 @@ spawn(const char *prog, const char **argv)
 			max = MAX(max, cur->p_va + cur->p_memsz);
 			min = MIN(min, cur->p_va);
 		}
-		cprintf("ASLR min %x max %x\n", min, max);
+		min = ROUNDDOWN(min, PGSIZE);
+		max = ROUNDUP(max, PGSIZE);
+		if (ASLR_DEBUG)
+			cprintf("ASLR min %x max %x\n", min, max);
 		if (min < max && max - min < FDTABLE - UTEXT) {
 			uint32_t mod = ROUNDDOWN(FDTABLE - UTEXT - (max - min), PGSIZE) / PGSIZE;
-			cprintf("ASLR mod %x\n", mod);
+			if (ASLR_DEBUG)
+				cprintf("ASLR mod %x\n", mod);
 			offset = sys_rand() % mod * PGSIZE;
-			cprintf("ASLR page num %x utext + num %x\n", offset / PGSIZE, UTEXT + offset);
+			if (ASLR_DEBUG)
+				cprintf("ASLR page num %x utext + num %x\n", offset / PGSIZE, UTEXT + offset);
 			offset = min - (UTEXT + offset);
-			cprintf("ASLR offset %d\n", offset);
+			if (ASLR_DEBUG)
+				cprintf("ASLR offset %d\n", offset);
 		}
-		cprintf("Child base (maybe) 0x%x\n", min - offset);
+		if (ASLR_DEBUG)
+			cprintf("Child base (maybe) 0x%x\n", min - offset);
 	}
 #endif
 
 	child_tf.tf_eip = elf->e_entry - offset;
-	cprintf("Child entry point 0x%x\n", child_tf.tf_eip);
+	if (ASLR_DEBUG)
+		cprintf("ASLR Child entry point 0x%x\n", child_tf.tf_eip);
 
 	struct Proghdr *cur = ph;
 	for (i = 0; i < elf->e_phnum; i++, cur++) {
@@ -152,13 +162,13 @@ spawn(const char *prog, const char **argv)
 
 #ifdef SANITIZE_USER_SHADOW_BASE
 	r = map_segment(child, SANITIZE_USER_SHADOW_BASE, SANITIZE_USER_SHADOW_SIZE,
-		fd, 0, 0, PTE_P | PTE_U | PTE_W);
+		fd, 0, 0, PTE_P | PTE_U | PTE_W, elf, offset);
 	if (r < 0) goto error;
 	r = map_segment(child, SANITIZE_USER_EXTRA_SHADOW_BASE, SANITIZE_USER_EXTRA_SHADOW_SIZE,
-		fd, 0, 0, PTE_P | PTE_U | PTE_W);
+		fd, 0, 0, PTE_P | PTE_U | PTE_W, elf, offset);
 	if (r < 0) goto error;
 	r = map_segment(child, SANITIZE_USER_FS_SHADOW_BASE, SANITIZE_USER_FS_SHADOW_SIZE,
-		fd, 0, 0, PTE_P | PTE_U | PTE_W);
+		fd, 0, 0, PTE_P | PTE_U | PTE_W, elf, offset);
 	if (r < 0) goto error;
 #endif
 
